@@ -1,22 +1,23 @@
-package com.hmall.service.impl;
+package com.hmall.cart.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.hmall.common.exception.BadRequestException;
+import com.hmall.api.client.ItemClient;
+import com.hmall.api.dto.ItemDTO;
+import com.hmall.cart.domain.dto.CartFormDTO;
+import com.hmall.cart.domain.po.Cart;
+import com.hmall.cart.domain.vo.CartVO;
+import com.hmall.cart.mapper.CartMapper;
+import com.hmall.cart.service.ICartService;
 import com.hmall.common.exception.BizIllegalException;
 import com.hmall.common.utils.BeanUtils;
 import com.hmall.common.utils.CollUtils;
 import com.hmall.common.utils.UserContext;
-import com.hmall.domain.dto.CartFormDTO;
-import com.hmall.domain.dto.ItemDTO;
-import com.hmall.domain.po.Cart;
-import com.hmall.domain.vo.CartVO;
-import com.hmall.mapper.CartMapper;
-import com.hmall.service.ICartService;
-import com.hmall.service.IItemService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Collection;
 import java.util.List;
@@ -37,7 +38,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements ICartService {
 
-    private final IItemService itemService;
+    // private final IItemService itemService;
+
+    private final RestTemplate restTemplate;
+
+    private final DiscoveryClient discoveryClient;
+
+    private final ItemClient itemClient;
 
     @Override
     public void addItem2Cart(CartFormDTO cartFormDTO) {
@@ -64,8 +71,9 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 
     @Override
     public List<CartVO> queryMyCarts() {
-        // 1.查询我的购物车列表
-        List<Cart> carts = lambdaQuery().eq(Cart::getUserId, UserContext.getUser()).list();
+        // 1.查询我的购物车列表 TODO
+        // List<Cart> carts = lambdaQuery().eq(Cart::getUserId, UserContext.getUser()).list();
+        List<Cart> carts = lambdaQuery().eq(Cart::getUserId, 1L).list();
         if (CollUtils.isEmpty(carts)) {
             return CollUtils.emptyList();
         }
@@ -83,8 +91,32 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
     private void handleCartItems(List<CartVO> vos) {
         // 1.获取商品id
         Set<Long> itemIds = vos.stream().map(CartVO::getItemId).collect(Collectors.toSet());
-        // 2.查询商品
-        List<ItemDTO> items = itemService.queryItemByIds(itemIds);
+        // 2.查询商品 TODO
+        // List<ItemDTO> items = itemService.queryItemByIds(itemIds);
+        // restTemplate 发起Http请求，得到http响应
+        // 服务名称->实例列表
+//        final List<ServiceInstance> instances = discoveryClient.getInstances("item-service");
+//        if (CollUtils.isEmpty(instances)) {
+//            return;
+//        }
+//        final ServiceInstance instance = instances.get(RandomUtil.randomInt(0, instances.size()));
+//        // 服务调用者，只需要被调用的服务名，不需要记住ip和端口
+//        final ResponseEntity<List<ItemDTO>> response = restTemplate.exchange(
+//                instance.getUri() + "/items?ids={ids}",
+//                HttpMethod.GET,
+//                null,
+//                // ItemDTO.class
+//                new ParameterizedTypeReference<List<ItemDTO>>() {
+//                },
+//                Map.of("ids", CollUtil.join(itemIds, ","))
+//        );
+//
+//        if (!response.getStatusCode().is2xxSuccessful()) {
+//            return;
+//        }
+//        List<ItemDTO> items = response.getBody();
+        // OpenFeign 会封装好,动态代理实现接口功能
+        List<ItemDTO> items = itemClient.queryItemByIds(itemIds);
         if (CollUtils.isEmpty(items)) {
             return;
         }
