@@ -74,18 +74,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         List<OrderDetail> details = buildDetails(order.getId(), items, itemNumMap);
         detailService.saveBatch(details);
 
-        // 3.清理购物车商品
-        cartClient.deleteCartItemByIds(itemIds);
-
-        // 4.扣减库存
+        // 3.扣减库存
         try {
             itemClient.deductStock(detailDTOS);
         } catch (Exception e) {
             throw new RuntimeException("库存不足！");
         }
+
+        // 4.清理购物车商品
+        cartClient.deleteCartItemByIds(itemIds);
         return order.getId();
     }
-
     @Override
     public void markOrderPaySuccess(Long orderId) {
         Order order = new Order();
